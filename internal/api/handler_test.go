@@ -248,7 +248,9 @@ func TestListRepos_Empty(t *testing.T) {
 	}
 
 	var repos []models.RepoRecord
-	json.NewDecoder(w.Body).Decode(&repos)
+	if err := json.NewDecoder(w.Body).Decode(&repos); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
 	if len(repos) != 0 {
 		t.Errorf("expected 0 repos, got %d", len(repos))
 	}
@@ -273,7 +275,9 @@ func TestListRepos_AfterCreate(t *testing.T) {
 	h.ListRepos(listW, listReq)
 
 	var repos []models.RepoRecord
-	json.NewDecoder(listW.Body).Decode(&repos)
+	if err := json.NewDecoder(listW.Body).Decode(&repos); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
 	if len(repos) != 1 {
 		t.Fatalf("expected 1 repo, got %d", len(repos))
 	}
