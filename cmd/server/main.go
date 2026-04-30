@@ -69,7 +69,9 @@ func main() {
 		slog.Info("shutting down server")
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		srv.Shutdown(ctx)
+		if err := srv.Shutdown(ctx); err != nil {
+			slog.Error("graceful shutdown failed", "error", err)
+		}
 	}()
 
 	slog.Info("server starting", "port", port, "version", version)
