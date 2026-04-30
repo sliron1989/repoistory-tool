@@ -1,4 +1,4 @@
-.PHONY: build run docker-build cluster deploy all clean
+.PHONY: build run docker-build cluster deploy all clean check-github-token
 
 CHART_DIR := deploy/repository-tool
 RELEASE_NAME := repository-tool
@@ -20,12 +20,22 @@ p=$(PORT); n=0; \
 	if [ "$$p" != "$(PORT)" ]; then echo ">> port $(PORT) busy, using $$p"; fi
 endef
 
+# Fail fast if GITHUB_TOKEN is unset. Used as a prerequisite for any target
+# that talks to the GitHub API or seeds a deployment with the token.
+check-github-token:
+	@if [ -z "$(GITHUB_TOKEN)" ]; then \
+		echo "ERROR: GITHUB_TOKEN is not set." >&2; \
+		echo "Export a personal access token before running this target, e.g.:" >&2; \
+		echo "  export GITHUB_TOKEN=ghp_..." >&2; \
+		exit 1; \
+	fi
+
 # Build the Go binary
 build:
 	go build -o bin/$(IMAGE) ./cmd/server
 
 # Run locally (requires GITHUB_TOKEN env var). Auto-picks a free port if $(PORT) is busy.
-run:
+run: check-github-token
 	@$(FIND_FREE_PORT); \
 		PORT=$$p go run ./cmd/server
 
@@ -46,14 +56,14 @@ load: docker-build
 	kind load docker-image $(IMAGE):latest --name $(CLUSTER)
 
 # Deploy to kind cluster via Helm (set your GitHub token!)
-deploy: load
+deploy: check-github-token load
 	helm upgrade --install $(RELEASE_NAME) $(CHART_DIR) \
 		--namespace $(NAMESPACE) \
 		--create-namespace \
 		--set github.token=$(GITHUB_TOKEN)
 
 # Full setup: create cluster + build + deploy
-all: cluster deploy
+all: check-github-token cluster deploy
 	@p=$$(cat $(PORT_FILE) 2>/dev/null || echo $(PORT)); \
 		echo ""; \
 		echo "$(RELEASE_NAME) is deploying. Check status with:"; \
@@ -89,6 +99,6 @@ clean:
 	rm -f bin/$(IMAGE) $(PORT_FILE)
 
 # Run locally with Docker. Auto-picks a free host port if $(PORT) is busy.
-docker-run:
+docker-run: check-github-token
 	@$(FIND_FREE_PORT); \
 		docker run -p $$p:8080 -e GITHUB_TOKEN=$(GITHUB_TOKEN) $(IMAGE):latest
