@@ -40,7 +40,9 @@ func TestCreateRepoResponse_JSON(t *testing.T) {
 	}
 
 	var decoded CreateRepoResponse
-	json.Unmarshal(data, &decoded)
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		t.Fatalf("failed to unmarshal: %v", err)
+	}
 
 	if decoded.Name != "test" {
 		t.Errorf("expected name 'test', got %q", decoded.Name)
@@ -55,7 +57,9 @@ func TestErrorResponse_JSON(t *testing.T) {
 	data, _ := json.Marshal(resp)
 
 	var decoded ErrorResponse
-	json.Unmarshal(data, &decoded)
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		t.Fatalf("failed to unmarshal: %v", err)
+	}
 
 	if decoded.Error != "not found" {
 		t.Errorf("expected 'not found', got %q", decoded.Error)
@@ -70,7 +74,9 @@ func TestHealthResponse_JSON(t *testing.T) {
 	data, _ := json.Marshal(resp)
 
 	var decoded HealthResponse
-	json.Unmarshal(data, &decoded)
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		t.Fatalf("failed to unmarshal: %v", err)
+	}
 
 	if decoded.Status != "ok" {
 		t.Errorf("expected 'ok', got %q", decoded.Status)

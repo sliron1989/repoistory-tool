@@ -54,7 +54,9 @@ func TestHealth(t *testing.T) {
 	}
 
 	var resp models.HealthResponse
-	json.NewDecoder(w.Body).Decode(&resp)
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
 
 	if resp.Status != "ok" {
 		t.Errorf("expected status 'ok', got %q", resp.Status)
@@ -105,7 +107,9 @@ func TestCreateRepo_Success(t *testing.T) {
 	}
 
 	var resp models.CreateRepoResponse
-	json.NewDecoder(w.Body).Decode(&resp)
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
 
 	if resp.Name != "my-service" {
 		t.Errorf("expected name 'my-service', got %q", resp.Name)
@@ -224,7 +228,9 @@ func TestCreateRepo_GitHubError(t *testing.T) {
 	}
 
 	var resp models.ErrorResponse
-	json.NewDecoder(w.Body).Decode(&resp)
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
 	if !strings.Contains(resp.Error, "GitHub API error") {
 		t.Errorf("expected error to contain 'GitHub API error', got %q", resp.Error)
 	}
