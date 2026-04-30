@@ -1,4 +1,4 @@
-.PHONY: build run docker-build cluster deploy all clean find-port
+.PHONY: build run docker-build cluster deploy all clean
 
 CHART_DIR := deploy/repository-tool
 RELEASE_NAME := repository-tool
@@ -8,13 +8,17 @@ CLUSTER := repository-tool
 PORT ?= 8080
 PORT_FILE := bin/.cluster-port
 
-# Pick the first free TCP port starting at $(PORT). Caps at 50 attempts.
-# Usage in a recipe: $$(PORT=$(PORT) $(MAKE) -s find-port)
-find-port:
-	@p=$(PORT); n=0; while lsof -iTCP:$$p -sTCP:LISTEN -Pn >/dev/null 2>&1; do \
+# Shell snippet that sets shell var $$p to the first free TCP port at/after $(PORT).
+# Inlined into recipes (rather than a recursive make call) so the captured value is
+# only the loop's own output and not contaminated by sub-make tracing/diagnostics.
+define FIND_FREE_PORT
+p=$(PORT); n=0; \
+	while lsof -iTCP:$$p -sTCP:LISTEN -Pn >/dev/null 2>&1; do \
 		n=$$((n+1)); [ $$n -ge 50 ] && { echo "no free port found near $(PORT)" >&2; exit 1; }; \
 		p=$$((p+1)); \
-	done; echo $$p
+	done; \
+	if [ "$$p" != "$(PORT)" ]; then echo ">> port $(PORT) busy, using $$p"; fi
+endef
 
 # Build the Go binary
 build:
@@ -22,8 +26,7 @@ build:
 
 # Run locally (requires GITHUB_TOKEN env var). Auto-picks a free port if $(PORT) is busy.
 run:
-	@p=$$(PORT=$(PORT) $(MAKE) -s find-port); \
-		if [ "$$p" != "$(PORT)" ]; then echo ">> port $(PORT) busy, using $$p"; fi; \
+	@$(FIND_FREE_PORT); \
 		PORT=$$p go run ./cmd/server
 
 # Build Docker image
@@ -32,12 +35,11 @@ docker-build:
 
 # Create kind cluster with port mapping. Auto-picks a free host port if $(PORT) is busy.
 cluster:
-	@mkdir -p bin; \
-		p=$$(PORT=$(PORT) $(MAKE) -s find-port); \
-		if [ "$$p" != "$(PORT)" ]; then echo ">> port $(PORT) busy, using $$p"; fi; \
+	@mkdir -p bin
+	@$(FIND_FREE_PORT); \
 		echo $$p > $(PORT_FILE); \
 		sed "s/hostPort: 8080/hostPort: $$p/" deploy/kind-config.yaml | \
-		kind create cluster --name $(CLUSTER) --config=-
+			kind create cluster --name $(CLUSTER) --config=-
 
 # Load Docker image into kind cluster
 load: docker-build
@@ -88,6 +90,5 @@ clean:
 
 # Run locally with Docker. Auto-picks a free host port if $(PORT) is busy.
 docker-run:
-	@p=$$(PORT=$(PORT) $(MAKE) -s find-port); \
-		if [ "$$p" != "$(PORT)" ]; then echo ">> port $(PORT) busy, using $$p"; fi; \
+	@$(FIND_FREE_PORT); \
 		docker run -p $$p:8080 -e GITHUB_TOKEN=$(GITHUB_TOKEN) $(IMAGE):latest
