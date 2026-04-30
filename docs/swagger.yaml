@@ -1,0 +1,145 @@
+basePath: /
+definitions:
+  models.CreateRepoRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+      private:
+        type: boolean
+    type: object
+  models.CreateRepoResponse:
+    properties:
+      clone_url:
+        type: string
+      created_at:
+        type: string
+      files_created:
+        items:
+          type: string
+        type: array
+      message:
+        type: string
+      name:
+        type: string
+      url:
+        type: string
+    type: object
+  models.ErrorResponse:
+    properties:
+      code:
+        type: integer
+      error:
+        type: string
+    type: object
+  models.HealthResponse:
+    properties:
+      status:
+        type: string
+      uptime:
+        type: string
+      version:
+        type: string
+    type: object
+  models.RepoRecord:
+    properties:
+      clone_url:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      name:
+        type: string
+      private:
+        type: boolean
+      url:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: Platform microservice that automates GitHub repository creation with
+    production-ready defaults.
+  title: Legit - Repository Creation Platform API
+  version: 1.0.0
+paths:
+  /api/v1/repos:
+    get:
+      description: Returns all repositories created since the service started
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.RepoRecord'
+            type: array
+      summary: List created repositories
+      tags:
+      - repositories
+    post:
+      consumes:
+      - application/json
+      description: Creates a GitHub repository with README, .gitignore, LICENSE, Go
+        microservice, Dockerfile, CI workflow, and branch protection rules
+      parameters:
+      - description: Repository creation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateRepoRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.CreateRepoResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Create a new GitHub repository
+      tags:
+      - repositories
+  /health:
+    get:
+      description: Returns service status, version, and uptime
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.HealthResponse'
+      summary: Health check
+      tags:
+      - health
+  /readyz:
+    get:
+      description: Verifies the service can connect to the GitHub API
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Readiness check
+      tags:
+      - health
+swagger: "2.0"

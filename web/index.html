@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Legit - Repository Creator</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #333; }
+        .container { max-width: 800px; margin: 0 auto; padding: 2rem; }
+        h1 { font-size: 1.8rem; margin-bottom: 0.5rem; color: #1a1a2e; }
+        .subtitle { color: #666; margin-bottom: 2rem; }
+        .card { background: white; border-radius: 8px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 1.5rem; }
+        .card h2 { font-size: 1.2rem; margin-bottom: 1rem; color: #1a1a2e; }
+        label { display: block; font-weight: 500; margin-bottom: 0.25rem; font-size: 0.9rem; }
+        input[type="text"], textarea { width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.95rem; margin-bottom: 1rem; }
+        input:focus, textarea:focus { outline: none; border-color: #4a90d9; box-shadow: 0 0 0 2px rgba(74,144,217,0.2); }
+        .checkbox-group { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
+        .checkbox-group input { width: auto; margin: 0; }
+        button { background: #4a90d9; color: white; border: none; padding: 0.7rem 1.5rem; border-radius: 4px; font-size: 0.95rem; cursor: pointer; }
+        button:hover { background: #3a7bc8; }
+        button:disabled { background: #999; cursor: not-allowed; }
+        .result { margin-top: 1rem; padding: 1rem; border-radius: 4px; display: none; }
+        .result.success { display: block; background: #e8f5e9; border: 1px solid #a5d6a7; }
+        .result.error { display: block; background: #fce4ec; border: 1px solid #ef9a9a; }
+        .result a { color: #1565c0; }
+        .file-list { list-style: none; padding: 0; }
+        .file-list li { padding: 0.2rem 0; font-family: monospace; font-size: 0.85rem; color: #555; }
+        .file-list li::before { content: "📄 "; }
+        .history-item { padding: 0.75rem 0; border-bottom: 1px solid #eee; }
+        .history-item:last-child { border-bottom: none; }
+        .history-item a { color: #4a90d9; text-decoration: none; font-weight: 500; }
+        .history-item .meta { font-size: 0.8rem; color: #999; margin-top: 0.25rem; }
+        .empty { color: #999; font-style: italic; }
+        .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 0.5rem; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Legit Platform</h1>
+        <p class="subtitle">Create new GitHub repositories with best practices built in</p>
+
+        <div class="card">
+            <h2>Create Repository</h2>
+            <form id="createForm">
+                <label for="name">Repository Name *</label>
+                <input type="text" id="name" placeholder="my-new-service" required pattern="[a-zA-Z0-9][a-zA-Z0-9._-]*">
+
+                <label for="description">Description</label>
+                <input type="text" id="description" placeholder="A brief description of the service">
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="private">
+                    <label for="private" style="margin-bottom: 0;">Private repository</label>
+                </div>
+
+                <button type="submit" id="submitBtn">Create Repository</button>
+            </form>
+
+            <div id="result" class="result"></div>
+        </div>
+
+        <div class="card">
+            <h2>Recently Created</h2>
+            <div id="history"><p class="empty">No repositories created yet.</p></div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('createForm');
+        const resultDiv = document.getElementById('result');
+        const submitBtn = document.getElementById('submitBtn');
+        const historyDiv = document.getElementById('history');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner"></span>Creating...';
+            resultDiv.className = 'result';
+
+            try {
+                const resp = await fetch('/api/v1/repos', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: document.getElementById('name').value,
+                        description: document.getElementById('description').value,
+                        private: document.getElementById('private').checked,
+                    }),
+                });
+
+                const data = await resp.json();
+
+                if (resp.ok) {
+                    const filesList = data.files_created
+                        ? data.files_created.map(f => `<li>${f}</li>`).join('')
+                        : '';
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <strong>Repository created!</strong><br>
+                        <a href="${data.url}" target="_blank">${data.url}</a><br>
+                        <code>git clone ${data.clone_url}</code>
+                        ${filesList ? `<br><br><strong>Files created:</strong><ul class="file-list">${filesList}</ul>` : ''}
+                    `;
+                    form.reset();
+                    loadHistory();
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `<strong>Error:</strong> ${data.error}`;
+                }
+            } catch (err) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<strong>Error:</strong> ${err.message}`;
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Create Repository';
+            }
+        });
+
+        async function loadHistory() {
+            try {
+                const resp = await fetch('/api/v1/repos');
+                const repos = await resp.json();
+
+                if (repos.length === 0) {
+                    historyDiv.innerHTML = '<p class="empty">No repositories created yet.</p>';
+                    return;
+                }
+
+                historyDiv.innerHTML = repos.reverse().map(r => `
+                    <div class="history-item">
+                        <a href="${r.url}" target="_blank">${r.name}</a>
+                        ${r.description ? ` &mdash; ${r.description}` : ''}
+                        <div class="meta">${r.private ? '🔒 Private' : '🌐 Public'} &bull; ${new Date(r.created_at).toLocaleString()}</div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                // silently fail on history load
+            }
+        }
+
+        loadHistory();
+    </script>
+</body>
+</html>

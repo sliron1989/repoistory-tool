@@ -1,0 +1,8 @@
+bin/
+*.exe
+.env
+.env.local
+.DS_Store
+server
+coverage.out
+settings.local.json

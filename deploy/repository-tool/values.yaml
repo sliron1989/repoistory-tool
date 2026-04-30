@@ -1,0 +1,41 @@
+replicaCount: 1
+
+image:
+  repository: repository-tool
+  tag: latest
+  pullPolicy: Never  # Using kind with pre-loaded images
+
+service:
+  type: NodePort
+  port: 8080
+  nodePort: 30080
+
+resources:
+  requests:
+    memory: "64Mi"
+    cpu: "50m"
+  limits:
+    memory: "128Mi"
+    cpu: "200m"
+
+env:
+  logFormat: "json"
+  port: "8080"
+
+github:
+  # Replace with your GitHub Personal Access Token
+  token: "REPLACE_WITH_YOUR_GITHUB_PAT"
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 15
+
+readinessProbe:
+  httpGet:
+    path: /readyz
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 10
