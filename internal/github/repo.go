@@ -14,11 +14,15 @@ import (
 func (s *Service) CreateRepository(ctx context.Context, req *models.CreateRepoRequest) (*models.CreateRepoResponse, error) {
 	slog.Info("creating GitHub repository", "name", req.Name, "owner", s.owner)
 
+	// AutoInit deliberately omitted: GitHub's auto-init creates a starter
+	// README.md, which then collides with our own README.md seed (the
+	// "create file" API rejects writes to an existing path without a sha).
+	// Letting our first CreateFile call be the initial commit avoids the
+	// conflict and ensures our template content is what lands on main.
 	repo, _, err := s.client.Repositories.Create(ctx, "", &gh.Repository{
 		Name:        gh.String(req.Name),
 		Description: gh.String(req.Description),
 		Private:     gh.Bool(req.Private),
-		AutoInit:    gh.Bool(true),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create repository: %w", err)
