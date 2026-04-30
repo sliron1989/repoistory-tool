@@ -35,11 +35,15 @@ func (s *Service) CreateRepository(ctx context.Context, req *models.CreateRepoRe
 
 	files, err := s.createFiles(ctx, req.Name, data)
 	if err != nil {
-		slog.Error("failed to create some files, continuing", "error", err)
+		slog.Error("file seeding failed", "name", req.Name, "url", repo.GetHTMLURL(), "created_files", files, "error", err)
+		return nil, fmt.Errorf("repository %s was created at %s but file seeding failed after %d files (%v): %w",
+			req.Name, repo.GetHTMLURL(), len(files), files, err)
 	}
 
 	if err := s.setBranchProtection(ctx, req.Name); err != nil {
-		slog.Error("failed to set branch protection", "error", err)
+		slog.Error("branch protection failed", "name", req.Name, "url", repo.GetHTMLURL(), "error", err)
+		return nil, fmt.Errorf("repository %s was created at %s with all files but branch protection failed: %w",
+			req.Name, repo.GetHTMLURL(), err)
 	}
 
 	return &models.CreateRepoResponse{
