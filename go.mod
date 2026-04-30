@@ -1,6 +1,6 @@
 module github.com/lshabtai/legit
 
-go 1.26.0
+go 1.25.0
 
 require (
 	github.com/google/go-github/v62 v62.0.0
