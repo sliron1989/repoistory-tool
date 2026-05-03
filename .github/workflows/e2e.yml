@@ -1,0 +1,110 @@
+name: E2E Smoke Test
+
+# Manually-triggered end-to-end test:
+#   1. Spin up a kind cluster in CI
+#   2. Build the platform image and helm-install it
+#   3. Hit the live API to create a real GitHub repo
+#   4. Verify the seeded files landed on GitHub
+#   5. Optionally delete the test repo
+on:
+  workflow_dispatch:
+    inputs:
+      repo_name_prefix:
+        description: 'Prefix for the test repo (run_id is appended for uniqueness)'
+        required: true
+        default: 'smoke-test'
+      cleanup:
+        description: 'Delete the test repo after verification'
+        required: true
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+jobs:
+  e2e:
+    name: Deploy to kind and create a real repo
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TEST_REPO_NAME: ${{ inputs.repo_name_prefix }}-${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build platform image
+        run: docker build -t repository-tool:e2e .
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: repository-tool-e2e
+
+      - name: Load image into kind
+        run: kind load docker-image repository-tool:e2e --name repository-tool-e2e
+
+      - name: Helm install
+        run: |
+          helm upgrade --install repository-tool deploy/repository-tool \
+            --namespace repository-tool --create-namespace \
+            --set image.tag=e2e \
+            --set secrets.GITHUB_TOKEN=${{ secrets.GH_PAT }}
+
+      - name: Wait for pod ready
+        run: |
+          kubectl -n repository-tool wait --for=condition=ready pod \
+            -l app.kubernetes.io/name=repository-tool --timeout=2m
+
+      - name: Port-forward to service
+        run: |
+          kubectl -n repository-tool port-forward svc/repository-tool 8080:8080 &
+          # Wait for the forward to be ready instead of a blind sleep
+          for i in $(seq 1 20); do
+            curl -fsS http://localhost:8080/health >/dev/null 2>&1 && break
+            sleep 1
+          done
+
+      - name: Health and readiness checks
+        run: |
+          echo "--- /health ---"
+          curl -fsS http://localhost:8080/health | jq
+          echo "--- /readyz ---"
+          curl -fsS http://localhost:8080/readyz | jq
+
+      - name: Create test repo via platform API
+        run: |
+          curl -fsS -X POST http://localhost:8080/api/v1/repos \
+            -H 'Content-Type: application/json' \
+            -d "{\"name\":\"$TEST_REPO_NAME\",\"description\":\"E2E test from GH Actions run ${{ github.run_id }}\"}" \
+            | jq
+
+      - name: Verify repo on GitHub has all 7 files
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          OWNER=$(gh api user --jq .login)
+          echo "Verifying $OWNER/$TEST_REPO_NAME"
+          files=$(gh api "repos/$OWNER/$TEST_REPO_NAME/contents" --jq '.[].name' | sort)
+          echo "Files found:"
+          echo "$files"
+          count=$(echo "$files" | wc -l)
+          if [ "$count" -ne 7 ]; then
+            echo "::error::Expected 7 entries, got $count"
+            exit 1
+          fi
+
+      - name: Show pod logs on failure
+        if: failure()
+        run: |
+          kubectl -n repository-tool logs -l app.kubernetes.io/name=repository-tool --tail=100 || true
+          kubectl -n repository-tool describe pod -l app.kubernetes.io/name=repository-tool || true
+
+      - name: Cleanup test repo
+        # always() makes this run even on prior step failure, so we don't leak repos
+        if: ${{ inputs.cleanup == 'true' && always() }}
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          OWNER=$(gh api user --jq .login)
+          gh repo delete "$OWNER/$TEST_REPO_NAME" --yes || \
+            echo "::warning::Failed to delete $OWNER/$TEST_REPO_NAME (PAT may be missing delete_repo scope)"
