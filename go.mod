@@ -1,4 +1,4 @@
-module github.com/lshabtai/legit
+module github.com/sliron1989/repoistory-tool
 
 go 1.25.0
 

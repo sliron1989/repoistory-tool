@@ -6,7 +6,7 @@ import (
 	"log/slog"
 
 	gh "github.com/google/go-github/v62/github"
-	"github.com/lshabtai/legit/internal/templates"
+	"github.com/sliron1989/repoistory-tool/internal/templates"
 )
 
 type fileEntry struct {

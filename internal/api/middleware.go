@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/lshabtai/legit/internal/metrics"
+	"github.com/sliron1989/repoistory-tool/internal/metrics"
 )
 
 type statusWriter struct {

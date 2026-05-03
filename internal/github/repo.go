@@ -7,8 +7,8 @@ import (
 	"time"
 
 	gh "github.com/google/go-github/v62/github"
-	"github.com/lshabtai/legit/internal/models"
-	"github.com/lshabtai/legit/internal/templates"
+	"github.com/sliron1989/repoistory-tool/internal/models"
+	"github.com/sliron1989/repoistory-tool/internal/templates"
 )
 
 func (s *Service) CreateRepository(ctx context.Context, req *models.CreateRepoRequest) (*models.CreateRepoResponse, error) {

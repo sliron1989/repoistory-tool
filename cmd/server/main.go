@@ -9,10 +9,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/lshabtai/legit/internal/api"
-	"github.com/lshabtai/legit/internal/github"
+	"github.com/sliron1989/repoistory-tool/internal/api"
+	"github.com/sliron1989/repoistory-tool/internal/github"
 
-	_ "github.com/lshabtai/legit/docs"
+	_ "github.com/sliron1989/repoistory-tool/docs"
 )
 
 // @title Legit - Repository Creation Platform API

@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lshabtai/legit/internal/models"
+	"github.com/sliron1989/repoistory-tool/internal/models"
 )
 
 // mockRepoCreator implements RepoCreator for testing.

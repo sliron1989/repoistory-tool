@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lshabtai/legit/internal/metrics"
-	"github.com/lshabtai/legit/internal/models"
+	"github.com/sliron1989/repoistory-tool/internal/metrics"
+	"github.com/sliron1989/repoistory-tool/internal/models"
 )
 
 var repoNameRegex = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]{0,99}$`)

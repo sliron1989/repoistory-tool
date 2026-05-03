@@ -3,7 +3,7 @@ package api
 import (
 	"net/http"
 
-	"github.com/lshabtai/legit/internal/web"
+	"github.com/sliron1989/repoistory-tool/internal/web"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
