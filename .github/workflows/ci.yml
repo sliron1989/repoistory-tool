@@ -81,7 +81,7 @@ jobs:
         uses: azure/setup-helm@v4
 
       - name: Lint chart
-        run: helm lint deploy/repository-tool
+        run: helm lint deploy/repository-tool --set secrets.GITHUB_TOKEN=ci-placeholder
 
       - name: Template chart
-        run: helm template repository-tool deploy/repository-tool --namespace repository-tool
+        run: helm template repository-tool deploy/repository-tool --namespace repository-tool --set secrets.GITHUB_TOKEN=ci-placeholder
