@@ -60,7 +60,7 @@ deploy: check-github-token load
 	helm upgrade --install $(RELEASE_NAME) $(CHART_DIR) \
 		--namespace $(NAMESPACE) \
 		--create-namespace \
-		--set github.token=$(GITHUB_TOKEN)
+		--set secrets.GITHUB_TOKEN=$(GITHUB_TOKEN)
 
 # Full setup: create cluster + build + deploy
 all: check-github-token cluster deploy

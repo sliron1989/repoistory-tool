@@ -18,13 +18,19 @@ resources:
     memory: "128Mi"
     cpu: "200m"
 
+# Plain string env vars injected into the container.
+# Add any KEY: "value" pair here and it will be picked up automatically;
+# no template change required.
 env:
-  logFormat: "json"
-  port: "8080"
+  LOG_FORMAT: "json"
+  PORT: "8080"
 
-github:
-  # Replace with your GitHub Personal Access Token
-  token: "REPLACE_WITH_YOUR_GITHUB_PAT"
+# Secret-backed env vars. Each KEY: value pair becomes both a key in the
+# chart-managed Secret AND a secretKeyRef env var on the Deployment.
+# Override at install time, e.g.:
+#   helm install ... --set secrets.GITHUB_TOKEN=ghp_xxx
+secrets:
+  GITHUB_TOKEN: ""
 
 livenessProbe:
   httpGet:

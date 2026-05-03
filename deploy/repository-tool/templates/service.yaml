@@ -11,7 +11,7 @@ spec:
     {{- include "repository-tool.selectorLabels" . | nindent 4 }}
   ports:
     - port: {{ .Values.service.port }}
-      targetPort: {{ .Values.env.port | int }}
+      targetPort: {{ .Values.env.PORT | int }}
       {{- if eq .Values.service.type "NodePort" }}
       nodePort: {{ .Values.service.nodePort }}
       {{- end }}

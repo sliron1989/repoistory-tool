@@ -20,18 +20,20 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
-            - containerPort: {{ .Values.env.port | int }}
+            - containerPort: {{ .Values.env.PORT | int }}
               protocol: TCP
           env:
-            - name: GITHUB_TOKEN
+            {{- range $key, $value := .Values.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+            {{- range $key, $_ := .Values.secrets }}
+            - name: {{ $key }}
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "repository-tool.fullname" . }}-github-token
-                  key: GITHUB_TOKEN
-            - name: LOG_FORMAT
-              value: {{ .Values.env.logFormat | quote }}
-            - name: PORT
-              value: {{ .Values.env.port | quote }}
+                  name: {{ include "repository-tool.fullname" $ }}-secrets
+                  key: {{ $key }}
+            {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           livenessProbe:
